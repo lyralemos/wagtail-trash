@@ -1,8 +1,11 @@
-from datetime import timedelta, datetime
+from datetime import timedelta
+
 from django.core.management import call_command
 from django.test import TestCase
-from wagtail.tests.utils import WagtailTestUtils
+from django.utils import timezone
 from wagtail.core.models import Page
+from wagtail.tests.utils import WagtailTestUtils
+
 from wagtail_trash.models import TrashCan
 
 
@@ -18,7 +21,7 @@ class TestManagementCommands(TestCase, WagtailTestUtils):
         root_page.add_child(instance=old_page)
         TrashCan.objects.create(page=old_page)
         TrashCan.objects.filter(page__title="new page oldie").update(
-            time_recycled=datetime.now() - timedelta(days=31)
+            time_recycled=timezone.now() - timedelta(days=31)
         )
 
         self.assertEqual(TrashCan.objects.count(), 2)

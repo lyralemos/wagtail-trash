@@ -1,3 +1,5 @@
+[![Run tests, lint and publish](https://github.com/Frojd/wagtail-trash/actions/workflows/main.yml/badge.svg)](https://github.com/Frojd/wagtail-trash/actions/workflows/main.yml) [![PyPI version](https://badge.fury.io/py/wagtail-trash.svg)](https://badge.fury.io/py/wagtail-trash)
+
 # wagtail trash
 
 Instead of deleting pages when pressing delete, pages will get thrown into the "Trash Can".
@@ -36,9 +38,11 @@ Since Wagtail Trash uses the hook `before_delete_page` it might interfere with y
 Also, Wagtail Trash "deletes" pages by unpublishing them, so if you use a queryset that doesn't filter out unpublished pages, pages in trash can might show up. There is a manager that will fix this for you included, example:
 
 ```python
+from wagtail.core.models import Page, PageManager
 from wagtail_trash.managers import TrashManager
 
 class SomePage(Page):
+    objects = PageManager()  # needed, so _default_manager isn't the trash manager
     objects_excluding_trash = TrashManager()
 
 # Now you can do this without getting any pages from the bin:
@@ -54,3 +58,12 @@ This is a solvable issue and will be fixed in a later version.
 There is an included managment-command called `empty_trash` that takes a required argument `--older_than_days`. To remove all items in the bin that's been there more than 30 days run this command:
 
 `./manage.py empty_trash --older_than_days=30`
+
+## Git flow
+
+This project uses git flow, current release is in the `main` branch and the current development is in the `develop` branch.
+
+
+## License
+
+wagtail trash is released under the [MIT License](http://www.opensource.org/licenses/MIT).

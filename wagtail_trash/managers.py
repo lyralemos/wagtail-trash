@@ -1,5 +1,11 @@
+import wagtail
 from django.db import models
-from wagtail.core.query import PageQuerySet
+
+if wagtail.VERSION >= (3, 0):
+    from wagtail.query import PageQuerySet
+else:
+    from wagtail.core.query import PageQuerySet
+
 from wagtail_trash.models import TrashCanPage
 
 

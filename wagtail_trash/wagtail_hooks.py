@@ -1,16 +1,16 @@
+from django.shortcuts import reverse
 from django.urls import path
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
-from django.shortcuts import reverse
-from wagtail.core import hooks
-from wagtail.core.models import Page
+from wagtail.contrib.modeladmin.helpers import ButtonHelper, PermissionHelper
 from wagtail.contrib.modeladmin.options import ModelAdmin, modeladmin_register
 from wagtail.contrib.modeladmin.views import IndexView
-from wagtail.contrib.modeladmin.helpers import ButtonHelper, PermissionHelper
+from wagtail.core import hooks
+from wagtail.core.models import Page
 
+from .models import TrashCan, TrashCanPage
 from .utils import trash_can_for_request
-from .models import TrashCanPage, TrashCan
-from .views import trash_delete, trash_restore, trash_move
+from .views import trash_delete, trash_move, trash_restore
 
 
 class TrashPermissionHelper(PermissionHelper):
@@ -72,6 +72,11 @@ class TrashButtonHelper(ButtonHelper):
         return buttons
 
 
+class TrashCanIndexView(IndexView):
+    def get_page_title(self):
+        return _("Trash Can")
+
+
 class TrashCanModelAdmin(ModelAdmin):
     model = TrashCan
     menu_label = _("Trash Can")
@@ -83,6 +88,9 @@ class TrashCanModelAdmin(ModelAdmin):
 
     button_helper_class = TrashButtonHelper
     permission_helper_class = TrashPermissionHelper
+
+    index_view_class = TrashCanIndexView
+    index_template_name = "wagtail_trash/index.html"
 
     def page_tree(self, rb):
         descendants = rb.page.get_descendants(inclusive=True)

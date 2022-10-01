@@ -1,19 +1,22 @@
 import json
-from django.utils.http import is_safe_url
-from django.utils.translation import gettext as _
+
+import wagtail
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render
-from wagtail.core.models import Site, Page
-from wagtail.core import hooks
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.translation import gettext as _
+from treebeard.mp_tree import MP_MoveHandler
 from wagtail.admin import messages
-from wagtail.admin.views.pages import delete
-from .models import TrashCanPage, TrashCan
-from .utils import trash_can_for_request, generate_page_data, restore_and_move_page
+from wagtail.core.models import Page
+
 from .forms import MoveForm
+from .models import TrashCan
+from .utils import generate_page_data, restore_and_move_page, trash_can_for_request
 
 
 def get_valid_next_url_from_request(request):
     next_url = request.POST.get("next") or request.GET.get("next")
-    if not next_url or not is_safe_url(
+    if not next_url or not url_has_allowed_host_and_scheme(
         url=next_url, allowed_hosts={request.get_host()}
     ):
         return ""
@@ -21,7 +24,7 @@ def get_valid_next_url_from_request(request):
 
 
 def trash_delete(request, page):
-    if not request.method == 'POST':
+    if not request.method == "POST":
         return
 
     trash_can = trash_can_for_request(request)
@@ -40,13 +43,24 @@ def trash_delete(request, page):
         )
 
         page.get_descendants(inclusive=True).unpublish()
-        page.move(trash_can, pos="first-child", user=request.user)
+
+        if wagtail.VERSION >= (2, 16):
+            # Preserve the url path
+            old_page = Page.objects.get(id=page.id)
+            new_url_path = old_page.set_url_path(parent=trash_can)
+
+            MP_MoveHandler(page, trash_can, "first-child").process()
+
+            # And reset the url path when in trash
+            new_page = Page.objects.get(id=page.id)
+            new_page.url_path = new_url_path
+            new_page.save()
+        else:
+            page.move(trash_can, pos="first-child", user=request.user)
 
         messages.success(
             request,
-            _("Page '{0}' moved to trash_can.").format(
-                page.get_admin_display_title()
-            ),
+            _("Page '{0}' moved to trash_can.").format(page.get_admin_display_title()),
         )
 
     next_url = get_valid_next_url_from_request(request)
@@ -81,7 +95,7 @@ def trash_move(request, page_id):
     )
 
 
-def trash_restore(request, page_id, move_to_id=None):
+def trash_restore(request, page_id):
     rb = TrashCan.objects.get(page_id=page_id)
     page = rb.page
 
